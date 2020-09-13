@@ -1,13 +1,16 @@
-<html>
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
 <head>
+    <meta charset="utf-8" />
     <title>Dependency Fetcher</title>
 </head>
-
 <body>
-    <form>
-        <label for="package_name">Package Name:</label><br>
-        <input type="text" id="package_name" name="package_name"><br>
-        <label for="package_version">Package version:</label><br>
-        <input type="text" id="package_version" name="package_version">
-      </form>
+    <form action="/submit-package-info" method="post">
+        Package Name: <input name="package_name" type="text" /> <br />
+        Package version: <input name="package_version" type="text" /> <br />
+        <input type="submit" />
+    </form>
 </body>
+</html>

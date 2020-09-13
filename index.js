@@ -1,24 +1,45 @@
 "use strict";
-// TODO: get package name from user
-// TODO: run as app
 // TODO: Tests
 // TODO: concurrency
 // TODO: draw tree
-// TODO: put all on GitHub
-const { readFile, readFileSync } = require('fs');
+
+const { readFile } = require('fs');
 const express = require('express');
-const port = 3000;
 const app = express();
-//app.get("/", (req, res) => {
-//    res.send( await readFile('./home.html', 'utf8') );
-//} )
-//app.listen(process.env.PORT || 3000, () => console.log(`App avaiable on http://localhost: `+port);
+var bodyParser = require("body-parser");
+
+app.use(bodyParser.urlencoded({ extended: false }));
+const port = 3000;
+
+
+let packageName;
+let packageVersion;
+
+app.get("/", (req, res) => {
+    readFile('./home.html', 'utf8', (err, html) => {
+        if (err) {
+            res.status(500).send('sorry, out of order')
+        }
+        res.send(html)
+    }) 
+} );
+
+app.post('/submit-package-info', function (req, res) {
+    packageName = req.body.package_name;
+    packageVersion = req.body.package_version;
+    res.send(`${packageName} Submitted Successfully`);
+    run(packageName, packageVersion);
+});
+
+var server = app.listen(port, function () {
+    console.log('Node server is running...');
+});
 
 const axios = require('axios');
 
 //for testing
-let packageName = 'raw-body';
-let packageVersion = '2.4.0';
+//let packageName = 'raw-body';
+//let packageVersion = '2.4.0';
 const cache = {};
 const awaitingCallback = {};
 
@@ -57,6 +78,13 @@ async function getDependencies(name, version) {
 async function run(name, version) {
     await getDependencies(name, version);
     console.log(cache)
+    try {
+        const dependenciesGraph = new DirectedGraph(cache)
+    } catch (e) {
+        console.error(e)
+        debugger;
+    }
+    console.log(dependenciesGraph)
     //const res = processCache();
 }
 
@@ -77,4 +105,3 @@ function recreatingDependenciesObject(deps) {
     return result;
 }
 
-run(packageName, packageVersion);
