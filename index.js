@@ -2,11 +2,11 @@
 
 const express = require('express');
 const axios = require('axios');
-const cytoscape = require('cytoscape');
 const app = express();
 var bodyParser = require("body-parser"); 
 
-app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
 const port = 3000;
 
 
@@ -16,7 +16,8 @@ app.use("/", express.static("public"));
 app.post('/', async function (req, res) {
     const packageName = req.body.package_name;
     const packageVersion = req.body.package_version;
-    await run(packageName, packageVersion);
+    const graph = await run(packageName, packageVersion);
+    res.json(graph);
 });
 
 var server = app.listen(port, function () {
@@ -73,7 +74,7 @@ async function getDependencies(name, version, cache, awaitingCallback) {
 
 async function run(name, version) {
     const cache = await getDependenciesWrapper(name, version);
-    graphify(cache);
+    return graphify(cache);
    
 }
 
@@ -112,16 +113,16 @@ function graphify(cache) {
     const existingNodes = {};
     for (let pkg in cache) {
         if (!existingNodes.hasOwnProperty(pkg)) {
-           graph["nodes"].push({data: { id: `${pkg}`, name: `${pkg}` }})
+           graph.nodes.push({data: { id: `${pkg}`, name: `${pkg}` }})
            existingNodes[pkg] = true;
         }
         for (let dependency in cache[pkg]) {
             const depNode = `${dependency}@${cache[pkg][dependency]}`
             if (!existingNodes.hasOwnProperty(depNode)) {
-                 graph["nodes"].push({data: { id: depNode, name: depNode }})
+                 graph.nodes.push({data: { id: depNode, name: depNode }})
                  existingNodes[depNode] = true;
             }
-            graph["edges"].push({data: { source: `${pkg}`, target: depNode }})
+            graph.edges.push({data: { source: `${pkg}`, target: depNode }})
         }
     }; 
     return graph

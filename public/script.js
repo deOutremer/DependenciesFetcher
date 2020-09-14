@@ -1,6 +1,16 @@
-function renderGraph() {
-    
-    
+async function submit() {
+    const form = document.getElementById('renderer')
+    const body = new URLSearchParams(new FormData(form));
+    const response = await fetch('/',{
+        method: "post",
+        body: body,
+    })
+    const json = await response.json()
+    renderGraph(json)
+}
+
+
+function renderGraph(graph) {
 
     window.cytoscape({
       container: document.getElementById("graph"),
@@ -92,4 +102,3 @@ function renderGraph() {
     });
   }
 
-  renderGraph(dependenciesGraph);
