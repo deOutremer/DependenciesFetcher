@@ -1,12 +1,11 @@
 "use strict";
-// TODO: Tests
-// TODO: concurrency
-// TODO: draw tree
 
 const { readFile } = require('fs');
 const express = require('express');
+const axios = require('axios');
+const cytoscape = require('cytoscape');
 const app = express();
-var bodyParser = require("body-parser");
+var bodyParser = require("body-parser"); 
 
 app.use(bodyParser.urlencoded({ extended: false }));
 const port = 3000;
@@ -16,7 +15,7 @@ let packageName;
 let packageVersion;
 
 app.get("/", (req, res) => {
-    readFile('./home.html', 'utf8', (err, html) => {
+    readFile('public/index.html', 'utf8', (err, html) => {
         if (err) {
             res.status(500).send('sorry, out of order')
         }
@@ -35,11 +34,13 @@ var server = app.listen(port, function () {
     console.log('Node server is running...');
 });
 
-const axios = require('axios');
 
-//for testing
-//let packageName = 'raw-body';
-//let packageVersion = '2.4.0';
+
+/*for testing ///////////////////////////
+let packageName = 'raw-body';
+let packageVersion = '2.4.0';
+
+//////////////////////////////////////*/
 const cache = {};
 const awaitingCallback = {};
 
@@ -64,8 +65,7 @@ async function getDependencies(name, version) {
     delete awaitingCallback[name];
     normalizedDeps = recreatingDependenciesObject(result.data.dependencies);
     cache[result.data._id] = normalizedDeps
-    
-    
+
     const promises = [];
     for(let dependency in normalizedDeps) {   
         const packageVersion = normalizedDeps[dependency]
@@ -75,17 +75,13 @@ async function getDependencies(name, version) {
     await Promise.all(promises);
 }
 
+
+
 async function run(name, version) {
     await getDependencies(name, version);
-    console.log(cache)
-    try {
-        const dependenciesGraph = new DirectedGraph(cache)
-    } catch (e) {
-        console.error(e)
-        debugger;
-    }
-    console.log(dependenciesGraph)
-    //const res = processCache();
+    //console.log(cache)
+    app.use("/", express.static("public/treeView.html"));
+   
 }
 
 function normalizeVersion(string) {
@@ -105,3 +101,5 @@ function recreatingDependenciesObject(deps) {
     return result;
 }
 
+//For testing
+//run(packageName, packageVersion);
