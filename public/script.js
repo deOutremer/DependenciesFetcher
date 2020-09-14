@@ -1,25 +1,6 @@
 function renderGraph() {
     
-    const graph = {}
-
-    for (let pkg in cache) {
-        graph.add({ 
-          data: { id: `${pkg}` } 
-        });
-      for (let dependency in cache[pkg]) {
-        const depNode = `${dependency}@${cache[pkg][dependency]}`
-        graph.add({ 
-          data: { id: `${depNode}` } 
-        });
-        graph.add({ 
-          data: {
-            id: `edge ${pkg} -> ${depNode}`,
-            source: pkg, 
-            target: depNode 
-          }
-        });
-      }
-    }
+    
 
     window.cytoscape({
       container: document.getElementById("graph"),

@@ -1,6 +1,5 @@
 "use strict";
 
-const { readFile } = require('fs');
 const express = require('express');
 const axios = require('axios');
 const cytoscape = require('cytoscape');
@@ -11,23 +10,13 @@ app.use(bodyParser.urlencoded({ extended: false }));
 const port = 3000;
 
 
-let packageName;
-let packageVersion;
 
-app.get("/", (req, res) => {
-    readFile('public/index.html', 'utf8', (err, html) => {
-        if (err) {
-            res.status(500).send('sorry, out of order')
-        }
-        res.send(html)
-    }) 
-} );
+app.use("/", express.static("public"));
 
-app.post('/submit-package-info', function (req, res) {
-    packageName = req.body.package_name;
-    packageVersion = req.body.package_version;
-    res.send(`${packageName} Submitted Successfully`);
-    run(packageName, packageVersion);
+app.post('/', async function (req, res) {
+    const packageName = req.body.package_name;
+    const packageVersion = req.body.package_version;
+    await run(packageName, packageVersion);
 });
 
 var server = app.listen(port, function () {
@@ -41,11 +30,16 @@ let packageName = 'raw-body';
 let packageVersion = '2.4.0';
 
 //////////////////////////////////////*/
-const cache = {};
-const awaitingCallback = {};
 
 
-async function getDependencies(name, version) {
+async function getDependenciesWrapper(name, version) {
+    let cache = {};
+    const awaitingCallback = {};
+    await getDependencies(name, version, cache, awaitingCallback);
+    return cache;
+}
+
+async function getDependencies(name, version, cache, awaitingCallback) {
     version = normalizeVersion(version)
     let packageIsBeingQueried = awaitingCallback.hasOwnProperty(name) && awaitingCallback[name] == version;
     let packageKey = `${name}@${version}`
@@ -70,7 +64,7 @@ async function getDependencies(name, version) {
     for(let dependency in normalizedDeps) {   
         const packageVersion = normalizedDeps[dependency]
         const packageName = dependency;
-        promises.push(getDependencies(packageName, packageVersion));
+        promises.push(getDependencies(packageName, packageVersion, cache, awaitingCallback));
     }
     await Promise.all(promises);
 }
@@ -78,9 +72,8 @@ async function getDependencies(name, version) {
 
 
 async function run(name, version) {
-    await getDependencies(name, version);
-    //console.log(cache)
-    app.use("/", express.static("public/treeView.html"));
+    const cache = await getDependenciesWrapper(name, version);
+    graphify(cache);
    
 }
 
@@ -100,6 +93,36 @@ function recreatingDependenciesObject(deps) {
     }
     return result;
 }
+/*
+{
+    nodes: [
+        { data: { id: "pkg1@1.0.0", name: "pkg1@1.0.0" } },
+        { data: { id: "pkg2@2.0.0", name: "pkg2@2.0.0" } },
+    ],
+    edges: [
+        { data: { source: "pkg1@1.0.0", target: "pkg2@2.0.0" } },
+        { data: { source: "pkg1@1.0.0", target: "pkg4@4.0.0" } },
+    ]
+};
+*/
 
-//For testing
-//run(packageName, packageVersion);
+
+function graphify(cache) {
+    const graph = {"nodes": [], "edges": []}
+    const existingNodes = {};
+    for (let pkg in cache) {
+        if (!existingNodes.hasOwnProperty(pkg)) {
+           graph["nodes"].push({data: { id: `${pkg}`, name: `${pkg}` }})
+           existingNodes[pkg] = true;
+        }
+        for (let dependency in cache[pkg]) {
+            const depNode = `${dependency}@${cache[pkg][dependency]}`
+            if (!existingNodes.hasOwnProperty(depNode)) {
+                 graph["nodes"].push({data: { id: depNode, name: depNode }})
+                 existingNodes[depNode] = true;
+            }
+            graph["edges"].push({data: { source: `${pkg}`, target: depNode }})
+        }
+    }; 
+    return graph
+}
